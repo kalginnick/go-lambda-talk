@@ -1,0 +1,22 @@
+﻿# sam local invoke -t extract-dev.yml -e scheduled-event.json
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Extract:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: go1.x
+      Handler: main
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 300
+      Events:
+        ExtractScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 10 * * ? *) # 10:00am (UTC) everyday
+      Environment:
+        Variables:
+          DOWNLOAD_URL: https://scoop.co.za/scoop_pricelist.xml
+          BUCKET: go-lambda-talk-test
+          FILENAME: source.xml

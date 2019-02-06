@@ -1,0 +1,31 @@
+﻿# sam local invoke -t transform-dev.yml -e s3-event.json
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Transform:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: go1.x
+      Handler: main
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 300
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonS3FullAccess
+      Events:
+        TransformS3Event:
+          Type: S3
+          Properties:
+            Bucket: SourceBucket
+            Events:
+              - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: source.xml
+      Environment:
+        Variables:
+          BUCKET: go-lambda-talk-test
+          FILENAME: offers.xml

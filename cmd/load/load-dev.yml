@@ -1,0 +1,23 @@
+﻿# sam local invoke -t load-dev.yml -e s3-event.json
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Load:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: go1.x
+      Handler: main
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 300
+      Events:
+        LoadS3Event:
+          Type: S3
+          Properties:
+            Bucket: provider-import-result
+            Events: s3:ObjectCreated:*
+      Environment:
+        Variables:
+          UPLOAD_URL: localhost:21
+          USER: anonymous
+          PSWD: anonymous

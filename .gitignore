@@ -1,0 +1,18 @@
+﻿# Binaries for programs and plugins
+*.exe
+main
+*.dll
+*.so
+*.dylib
+*.a
+*.zip
+
+# AWS Cloudformation generated deployment descriptor
+packaged.yml
+
+# Test binary, build with `go test -c`
+*.test
+*.out
+coverage.html
+
+vendor

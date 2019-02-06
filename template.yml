@@ -1,0 +1,102 @@
+﻿AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  SourceBucketName:
+    Type: String
+  ResultBucketName:
+    Type: String
+  LoadUrl:
+    Type: String
+  LoadUser:
+    Type: String
+  LoadPswd:
+    Type: String
+
+Resources:
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref SourceBucketName
+
+  ResultBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ResultBucketName
+
+  Extract:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: extract
+      Runtime: go1.x
+      Handler: main
+      CodeUri: cmd/extract/main.zip
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonS3FullAccess
+      Events:
+        ExtractScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 1 * * ? *) # 1:00am (UTC) everyday
+      Environment:
+        Variables:
+          DOWNLOAD_URL: https://scoop.co.za/scoop_pricelist.xml
+          BUCKET: !Ref SourceBucketName
+          FILENAME: entries.xml
+
+  Transform:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: transform
+      Runtime: go1.x
+      Handler: main
+      CodeUri: cmd/transform/main.zip
+      MemorySize: 512
+      Timeout: 300
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonS3FullAccess
+      Events:
+        TransformFarMskToysS3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref SourceBucket
+            Events:
+              - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: entries.xml
+      Environment:
+        Variables:
+          BUCKET: !Ref ResultBucketName
+          FILENAME: offers.xml
+
+  Load:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: load
+      Runtime: go1.x
+      Handler: main
+      CodeUri: cmd/load/main.zip
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonS3FullAccess
+      Events:
+        LoadS3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref ResultBucket
+            Events:
+              - s3:ObjectCreated:*
+      Environment:
+        Variables:
+          UPLOAD_URL: !Ref LoadUrl
+          USER: !Ref LoadUser
+          PSWD: !Ref LoadPswd
